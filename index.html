@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Luma Creation | Graphic Design Portfolio</title>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Playfair+Display:ital,wght@0,700;1,600&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div class="main-container">
-        <!-- LEFT SIDEBAR (Brand & Info) -->
+        <!-- LEFT SIDEBAR -->
         <aside class="sidebar">
             <div class="brand-header">
                 <div class="logo-box">
@@ -32,7 +30,6 @@
                 <p class="tagline">Creative Designs That Help Businesses Grow.</p>
             </div>
 
-            <!-- Workspace Visual Card -->
             <div class="workspace-banner">
                 <div class="laptop-mockup">
                     <div class="screen">
@@ -41,13 +38,11 @@
                 </div>
             </div>
 
-            <!-- About Me -->
             <div class="info-section">
                 <h3><i class="fa-regular fa-user"></i> About Me</h3>
                 <p>Hi! I'm a passionate Graphic Designer at <strong>Luma Creation</strong>. I create eye-catching and professional designs for businesses around the world.</p>
             </div>
 
-            <!-- What I Offer -->
             <div class="info-section">
                 <h3><i class="fa-regular fa-gem"></i> What I Offer?</h3>
                 <ul class="offer-list">
@@ -65,13 +60,9 @@
             </div>
         </aside>
 
-        <!-- RIGHT CONTENT (Portfolio Grid & Contact) -->
+        <!-- RIGHT CONTENT -->
         <main class="content-area">
-            
-            <!-- Categories Grid -->
             <div class="categories-wrapper">
-                
-                <!-- 1. Bakery Designs -->
                 <section class="category-block">
                     <div class="category-pill">
                         <i class="fa-solid fa-cake-candles"></i>
@@ -80,7 +71,6 @@
                     <div class="cards-grid" id="grid-bakery"></div>
                 </section>
 
-                <!-- 2. Coffee Shop Designs -->
                 <section class="category-block">
                     <div class="category-pill">
                         <i class="fa-solid fa-mug-hot"></i>
@@ -89,7 +79,6 @@
                     <div class="cards-grid" id="grid-coffee"></div>
                 </section>
 
-                <!-- 3. Restaurant Designs -->
                 <section class="category-block">
                     <div class="category-pill">
                         <i class="fa-solid fa-utensils"></i>
@@ -98,7 +87,6 @@
                     <div class="cards-grid" id="grid-restaurant"></div>
                 </section>
 
-                <!-- 4. Food Product Designs -->
                 <section class="category-block">
                     <div class="category-pill">
                         <i class="fa-solid fa-cart-shopping"></i>
@@ -106,10 +94,8 @@
                     </div>
                     <div class="cards-grid" id="grid-food"></div>
                 </section>
-
             </div>
 
-            <!-- Contact & CTA Section -->
             <div class="bottom-contact-row">
                 <div class="contact-box">
                     <div class="get-in-touch">
@@ -135,7 +121,6 @@
                     </div>
                 </div>
 
-                <!-- Right Brush CTA -->
                 <div class="cta-box">
                     <div class="brush-banner">
                         <span>Professional Design</span>
@@ -146,7 +131,6 @@
                     </a>
                 </div>
             </div>
-
         </main>
     </div>
 
@@ -164,16 +148,14 @@
             <span><i class="fa-regular fa-circle-check"></i> Creative Quality</span>
             <span><i class="fa-regular fa-circle-check"></i> On-Time Delivery</span>
             <span><i class="fa-regular fa-circle-check"></i> 100% Satisfaction</span>
-            <!-- ADMIN LOCK ICON -->
-            <button id="admin-lock-btn" title="Admin Login"><i class="fa-solid fa-lock"></i></button>
+            <button id="admin-lock-btn" type="button" title="Admin Login"><i class="fa-solid fa-lock"></i></button>
         </div>
     </footer>
 
     <!-- IMAGE LIGHTBOX MODAL -->
     <div id="lightbox-modal" class="modal">
         <span class="close-lightbox">&times;</span>
-        <img class="modal-content" id="lightbox-img">
-        <div id="lightbox-caption"></div>
+        <img class="modal-content" id="lightbox-img" alt="Preview">
     </div>
 
     <!-- ADMIN LOGIN & UPLOAD MODAL -->
@@ -181,33 +163,31 @@
         <div class="admin-panel">
             <div class="admin-header">
                 <h3><i class="fa-solid fa-shield-halved"></i> Luma Creation - Admin</h3>
-                <button id="close-admin">&times;</button>
+                <button id="close-admin" type="button">&times;</button>
             </div>
 
-            <!-- Login & Verification View -->
             <div id="admin-login-view">
-                <p class="admin-note">Verify your GitHub Token & Repository write permissions to manage designs.</p>
+                <p class="admin-note">Enter your GitHub Personal Access Token to verify access and manage images.</p>
                 <div class="form-group">
-                    <label>GitHub Personal Access Token</label>
+                    <label for="github-token-input">GitHub Token</label>
                     <input type="password" id="github-token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
                 </div>
-                <button id="login-submit-btn" class="gold-btn">
+                <button id="login-submit-btn" type="button" class="gold-btn">
                     <i class="fa-solid fa-check-double"></i> Verify & Unlock Admin Panel
                 </button>
                 <p id="login-error" class="error-msg"></p>
                 <div id="verify-checklist" class="verify-box" style="display: none;"></div>
             </div>
 
-            <!-- Dashboard View (After Verification) -->
             <div id="admin-dashboard-view" style="display: none;">
-                <div id="verified-badge" class="verified-badge">
+                <div class="verified-badge">
                     <i class="fa-solid fa-circle-check"></i> Token & Repo Verified
                 </div>
 
                 <div class="upload-section">
                     <h4>Upload New Design</h4>
                     <div class="form-group">
-                        <label>Select Category</label>
+                        <label for="upload-category">Select Category</label>
                         <select id="upload-category">
                             <option value="bakery">Bakery Designs</option>
                             <option value="coffee">Coffee Shop Designs</option>
@@ -216,18 +196,17 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Design Title (Optional)</label>
+                        <label for="upload-title">Design Title (Optional)</label>
                         <input type="text" id="upload-title" placeholder="e.g., Delicious Chocolate Cake">
                     </div>
                     <div class="form-group">
-                        <label>Choose Image (Instagram/FB Size)</label>
+                        <label for="upload-file">Choose Image (Instagram/FB Size)</label>
                         <input type="file" id="upload-file" accept="image/*">
                     </div>
-                    <button id="upload-submit-btn" class="gold-btn">
+                    <button id="upload-submit-btn" type="button" class="gold-btn">
                         <i class="fa-solid fa-cloud-arrow-up"></i> Upload to GitHub
                     </button>
 
-                    <!-- Uploading Progress Indicator -->
                     <div id="upload-progress-wrap" class="upload-progress-wrap" style="display: none;">
                         <div class="progress-header">
                             <span id="upload-status-text">Preparing...</span>
@@ -241,13 +220,13 @@
                 </div>
 
                 <hr class="admin-divider">
-                
+
                 <div class="manage-section">
                     <h4>Manage Existing Images</h4>
                     <div id="admin-image-list" class="admin-img-grid"></div>
                 </div>
 
-                <button id="logout-btn" class="logout-btn">Lock & Logout</button>
+                <button id="logout-btn" type="button" class="logout-btn">Lock & Logout</button>
             </div>
         </div>
     </div>
