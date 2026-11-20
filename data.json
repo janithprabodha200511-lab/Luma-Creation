@@ -15,6 +15,13 @@
       "url": "https://raw.githubusercontent.com/janithprabodha200511-lab/Luma-Creation/main/images/coffee_1795157339664.jpeg"
     }
   ],
-  "restaurant": [],
+  "restaurant": [
+    {
+      "id": 1795157378720,
+      "title": "",
+      "path": "images/restaurant_1795157378720.jpeg",
+      "url": "https://raw.githubusercontent.com/janithprabodha200511-lab/Luma-Creation/main/images/restaurant_1795157378720.jpeg"
+    }
+  ],
   "food": []
 }
