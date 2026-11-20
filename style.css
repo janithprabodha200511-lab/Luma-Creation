@@ -54,7 +54,6 @@ body {
     justify-content: space-between;
 }
 
-/* Brand Logo */
 .logo-box {
     display: flex;
     align-items: center;
@@ -91,7 +90,6 @@ body {
     margin-top: 4px;
 }
 
-/* Hero Title */
 .hero-title h2 {
     font-size: 1.85rem;
     font-weight: 700;
@@ -121,7 +119,6 @@ body {
     margin-bottom: 22px;
 }
 
-/* Workspace Visual Card */
 .workspace-banner {
     background: linear-gradient(135deg, #2b2312, #161616);
     border: 1px solid var(--border-gold);
@@ -164,7 +161,6 @@ body {
     letter-spacing: -2px;
 }
 
-/* Info Sections (About & Offer) */
 .info-section {
     margin-bottom: 22px;
 }
@@ -203,7 +199,6 @@ body {
     font-size: 0.9rem;
 }
 
-/* Script Footer */
 .script-footer {
     font-family: 'Dancing Script', cursive;
     font-size: 2rem;
@@ -246,7 +241,6 @@ body {
     padding: 18px;
 }
 
-/* Golden Category Pill */
 .category-pill {
     display: inline-flex;
     align-items: center;
@@ -268,7 +262,6 @@ body {
     font-weight: 800;
 }
 
-/* Image Cards Grid (Supports Unlimited Images) */
 .cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
@@ -281,7 +274,7 @@ body {
     overflow: hidden;
     border: 1.5px solid var(--border-gold);
     background: #1a1a1a;
-    aspect-ratio: 4 / 5; /* Ideal for Instagram/Facebook Posts */
+    aspect-ratio: 4 / 5;
     cursor: pointer;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
@@ -424,7 +417,6 @@ body {
     color: #eee;
 }
 
-/* Right Brush CTA */
 .cta-box {
     flex: 1;
     display: flex;
@@ -505,7 +497,6 @@ body {
 
 .sep { color: #555; }
 
-/* Small Discreet Admin Lock Button */
 #admin-lock-btn {
     background: transparent;
     border: 1px solid #333;
@@ -527,7 +518,7 @@ body {
 }
 
 /* =========================================
-   MODALS (LIGHTBOX & ADMIN PANEL)
+   MODALS, VERIFICATION & UPLOAD PROGRESS
    ========================================= */
 .modal {
     display: none;
@@ -544,7 +535,6 @@ body {
     padding: 20px;
 }
 
-/* Lightbox */
 .modal-content {
     max-width: 90%;
     max-height: 85vh;
@@ -562,7 +552,6 @@ body {
     cursor: pointer;
 }
 
-/* Admin Panel Box */
 .admin-panel {
     background: #181818;
     border: 1.5px solid var(--gold-primary);
@@ -637,10 +626,80 @@ body {
     margin-top: 6px;
 }
 
-.gold-btn:hover { background: var(--gold-hover); }
+.gold-btn:hover:not(:disabled) { background: var(--gold-hover); }
+.gold-btn:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .error-msg { color: #ff5252; font-size: 0.82rem; margin-top: 8px; }
 .status-msg { color: #4caf50; font-size: 0.85rem; margin-top: 10px; font-weight: 600; }
+
+/* Verification Box */
+.verify-box {
+    margin-top: 14px;
+    background: #121212;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.8rem;
+}
+
+.verify-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.verify-item:last-child { margin-bottom: 0; }
+.verify-ok { color: #4caf50; }
+.verify-fail { color: #ff5252; }
+
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(76, 175, 80, 0.15);
+    border: 1px solid rgba(76, 175, 80, 0.4);
+    color: #81c784;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+}
+
+/* Uploading Progress Bar */
+.upload-progress-wrap {
+    margin-top: 14px;
+    background: #121212;
+    border: 1px solid rgba(244, 180, 26, 0.3);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--gold-primary);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.progress-track {
+    width: 100%;
+    height: 10px;
+    background: #242424;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #d89600, var(--gold-primary), #ffe07d);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
 
 .admin-divider {
     border: 0;
