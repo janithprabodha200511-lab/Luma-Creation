@@ -23,12 +23,5 @@
       "url": "https://raw.githubusercontent.com/janithprabodha200511-lab/Luma-Creation/main/images/restaurant_1795157378720.jpeg"
     }
   ],
-  "food": [
-    {
-      "id": 1795157411889,
-      "title": "",
-      "path": "images/food_1795157411889.jpeg",
-      "url": "https://raw.githubusercontent.com/janithprabodha200511-lab/Luma-Creation/main/images/food_1795157411889.jpeg"
-    }
-  ]
+  "food": []
 }
