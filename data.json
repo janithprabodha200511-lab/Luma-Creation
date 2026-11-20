@@ -1,12 +1,5 @@
 {
-  "bakery": [
-    {
-      "id": 1795155105883,
-      "title": "",
-      "path": "images/bakery_1795155090974.jpeg",
-      "url": "https://raw.githubusercontent.com/janithprabodha200511-lab/Luma-Creation/main/images/bakery_1795155090974.jpeg"
-    }
-  ],
+  "bakery": [],
   "coffee": [],
   "restaurant": [],
   "food": []
