@@ -2,10 +2,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================================
     // CONFIGURATION - ඔයාගේ GitHub විස්තර මෙතනට දාන්න
     // =========================================================
-    const GITHUB_USERNAME = "janithprabodha200511-lab
-";
-    const REPO_NAME = "Luma-Creation";
-    let BRANCH = "main";
+    const GITHUB_USERNAME ="janithprabodha200511-lab";
+    const REPO_NAME ="Luma-Creation";
+    let BRANCH ="main";
 
     // =========================================================
     // STATE & ELEMENTS
