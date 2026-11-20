@@ -3,7 +3,7 @@
 // =========================================================
 const GITHUB_USERNAME = "YOUR_GITHUB_USERNAME"; // උදා: "janithprabodha"
 const REPO_NAME = "luma-creation";              // ඔයා හදපු Repository එකේ නම
-const BRANCH = "main";                          // සාමාන්‍යයෙන් "main"
+let BRANCH = "main";                            // Auto-detected on verify/load if different
 
 // =========================================================
 // APP STATE & DOM ELEMENTS
@@ -42,30 +42,103 @@ const lightboxImg = document.getElementById("lightbox-img");
 const closeLightbox = document.querySelector(".close-lightbox");
 
 // =========================================================
-// 1. LOAD PORTFOLIO IMAGES ON PAGE LOAD
+// HELPER: UTF-8 BASE64 ENCODE / DECODE
 // =========================================================
+function decodeBase64Utf8(base64Str) {
+    const clean = (base64Str || "").replace(/\n/g, "");
+    const binaryStr = atob(clean);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+    }
+    return new TextDecoder("utf-8").decode(bytes);
+}
+
+function encodeUtf8ToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+function normalizePortfolioData(raw) {
+    const safe = raw && typeof raw === "object" ? raw : {};
+    return {
+        bakery: Array.isArray(safe.bakery) ? safe.bakery : [],
+        coffee: Array.isArray(safe.coffee) ? safe.coffee : [],
+        restaurant: Array.isArray(safe.restaurant) ? safe.restaurant : [],
+        food: Array.isArray(safe.food) ? safe.food : []
+    };
+}
+
+// =========================================================
+// 1. FETCH LATEST DATA.JSON & RENDER PORTFOLIO + ADMIN LIST
+// =========================================================
+async function fetchLatestDataJson(token = "") {
+    const headers = {
+        Accept: "application/vnd.github+json",
+        ...(token ? { Authorization: `token ${token}` } : {})
+    };
+
+    const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data.json?ref=${encodeURIComponent(BRANCH)}&t=${Date.now()}`;
+    let res = await fetch(apiUrl, { headers, cache: "no-store" });
+
+    // If configured branch doesn't match, try without ref (uses repo default branch)
+    if (!res.ok && res.status === 404) {
+        const fallbackUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data.json?t=${Date.now()}`;
+        res = await fetch(fallbackUrl, { headers, cache: "no-store" });
+    }
+
+    if (!res.ok) {
+        throw new Error(`Could not load data.json (HTTP ${res.status}).`);
+    }
+
+    const fileData = await res.json();
+    const jsonText = decodeBase64Utf8(fileData.content);
+    const parsed = JSON.parse(jsonText);
+
+    return {
+        sha: fileData.sha,
+        data: normalizePortfolioData(parsed)
+    };
+}
+
 async function loadPortfolio() {
     try {
-        const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/data.json?t=${Date.now()}`;
-        const response = await fetch(url);
-        if (response.ok) {
-            portfolioData = await response.json();
-        }
+        const latest = await fetchLatestDataJson(githubToken);
+        portfolioData = latest.data;
     } catch (error) {
-        console.log("Loading initial empty portfolio...");
+        console.warn("API fetch fallback to raw:", error.message);
+        try {
+            const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/data.json?t=${Date.now()}`;
+            const response = await fetch(rawUrl, { cache: "no-store" });
+            if (response.ok) {
+                const rawJson = await response.json();
+                portfolioData = normalizePortfolioData(rawJson);
+            }
+        } catch (e) {
+            console.log("Initial portfolio load fallback:", e.message);
+        }
     }
+
     renderAllCategories();
+    if (githubToken) {
+        renderAdminImageList();
+    }
 }
 
 function renderAllCategories() {
     const categories = ["bakery", "coffee", "restaurant", "food"];
-    
+
     categories.forEach(cat => {
         const grid = document.getElementById(`grid-${cat}`);
+        if (!grid) return;
+
         grid.innerHTML = "";
-        
         const items = portfolioData[cat] || [];
-        
+
         if (items.length === 0) {
             grid.innerHTML = `<div class="empty-placeholder">No designs uploaded yet.</div>`;
             return;
@@ -74,23 +147,23 @@ function renderAllCategories() {
         items.forEach(item => {
             const card = document.createElement("div");
             card.className = "design-card";
+            const imgSrc = item.url.includes("?") ? `${item.url}&v=${item.id || Date.now()}` : `${item.url}?v=${item.id || Date.now()}`;
+
             card.innerHTML = `
-                <img src="${item.url}" alt="${item.title || 'Design'}" loading="lazy">
+                <img src="${imgSrc}" alt="${item.title || 'Design'}" loading="lazy">
                 <div class="card-overlay">
                     <span>${item.title || 'View Design'}</span>
                 </div>
             `;
+
             card.addEventListener("click", () => {
                 lightboxModal.style.display = "flex";
                 lightboxImg.src = item.url;
             });
+
             grid.appendChild(card);
         });
     });
-
-    if (githubToken) {
-        renderAdminImageList();
-    }
 }
 
 closeLightbox.onclick = () => lightboxModal.style.display = "none";
@@ -101,13 +174,15 @@ lightboxModal.onclick = (e) => {
 // =========================================================
 // 2. ADMIN LOCK & TOKEN/REPO VERIFICATION
 // =========================================================
-lockBtn.addEventListener("click", () => {
+lockBtn.addEventListener("click", async () => {
     adminModal.style.display = "flex";
     loginError.textContent = "";
     verifyChecklist.style.display = "none";
 
     if (githubToken) {
         showDashboard();
+        await loadPortfolio();
+        renderAdminImageList();
     } else {
         loginView.style.display = "block";
         dashboardView.style.display = "none";
@@ -129,6 +204,11 @@ function renderVerifyChecklist(checks) {
 }
 
 async function verifyTokenAndRepo(token) {
+    const headers = {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github+json"
+    };
+
     const checks = [
         { label: "Token authentication", ok: false },
         { label: `Repository access (${GITHUB_USERNAME}/${REPO_NAME})`, ok: false },
@@ -136,25 +216,22 @@ async function verifyTokenAndRepo(token) {
         { label: "data.json file found", ok: false }
     ];
 
-    // 1. Check Token User
-    const userRes = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `token ${token}` }
-    });
+    const userRes = await fetch("https://api.github.com/user", { headers });
     if (!userRes.ok) {
         renderVerifyChecklist(checks);
         throw new Error("Invalid GitHub Token.");
     }
     checks[0].ok = true;
 
-    // 2. Check Repository & Push Permission
-    const repoRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}`, {
-        headers: { Authorization: `token ${token}` }
-    });
+    const repoRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}`, { headers });
     if (!repoRes.ok) {
         renderVerifyChecklist(checks);
         throw new Error("Repository not found or token has no access to it.");
     }
     const repoInfo = await repoRes.json();
+    if (repoInfo.default_branch) {
+        BRANCH = repoInfo.default_branch;
+    }
     checks[1].ok = true;
 
     const canPush = Boolean(repoInfo.permissions && repoInfo.permissions.push);
@@ -164,10 +241,7 @@ async function verifyTokenAndRepo(token) {
         throw new Error("Token lacks write permission. Enable 'repo' (Classic) or 'Contents: Read & write' (Fine-grained).");
     }
 
-    // 3. Check data.json existence
-    const dataRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data.json?ref=${BRANCH}`, {
-        headers: { Authorization: `token ${token}` }
-    });
+    const dataRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data.json?ref=${encodeURIComponent(BRANCH)}`, { headers });
     checks[3].ok = dataRes.ok;
     renderVerifyChecklist(checks);
 
@@ -196,6 +270,8 @@ loginSubmitBtn.addEventListener("click", async () => {
         localStorage.setItem("luma_gh_token", token);
         tokenInput.value = "";
         showDashboard();
+        await loadPortfolio();
+        renderAdminImageList();
     } catch (err) {
         loginError.textContent = err.message || "Verification failed.";
     } finally {
@@ -217,7 +293,7 @@ logoutBtn.addEventListener("click", () => {
 });
 
 // =========================================================
-// 3. UPLOAD IMAGE WITH LIVE PROGRESS INDICATOR
+// 3. UPLOAD IMAGE WITH LIVE PROGRESS & VERIFIED SAVE
 // =========================================================
 function setUploadProgress(percent, text) {
     progressWrap.style.display = "block";
@@ -233,6 +309,12 @@ uploadSubmitBtn.addEventListener("click", async () => {
 
     uploadStatus.textContent = "";
 
+    if (!githubToken) {
+        uploadStatus.style.color = "#ff5252";
+        uploadStatus.textContent = "Session expired. Please unlock Admin Panel again.";
+        return;
+    }
+
     if (!fileInput.files.length) {
         uploadStatus.style.color = "#ff5252";
         uploadStatus.textContent = "Please select an image file first!";
@@ -245,18 +327,18 @@ uploadSubmitBtn.addEventListener("click", async () => {
     setUploadProgress(15, "Reading image file...");
 
     try {
-        // Step 1: Convert Image to Base64
         const base64Content = await toBase64(file);
         const cleanBase64 = base64Content.split(",")[1];
-        const ext = (file.name.split(".").pop() || "png").toLowerCase();
-        const fileName = `images/${category}_${Date.now()}.${ext}`;
+        const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const uniqueId = Date.now();
+        const fileName = `images/${category}_${uniqueId}.${ext || "png"}`;
 
-        // Step 2: Upload Image File to GitHub
         setUploadProgress(45, "Uploading image to GitHub...");
         const imgUploadRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${fileName}`, {
             method: "PUT",
             headers: {
                 Authorization: `token ${githubToken}`,
+                Accept: "application/vnd.github+json",
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
@@ -268,17 +350,16 @@ uploadSubmitBtn.addEventListener("click", async () => {
 
         if (!imgUploadRes.ok) {
             const errBody = await imgUploadRes.json().catch(() => ({}));
-            throw new Error(errBody.message || "Image upload failed. Check token write permissions.");
+            throw new Error(errBody.message || "Image upload failed.");
         }
 
         const rawImageUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${fileName}`;
 
-        // Step 3: Update data.json in GitHub
-        setUploadProgress(80, "Updating data.json database...");
+        setUploadProgress(80, "Saving to data.json...");
         await updateDataJson((data) => {
-            if (!data[category]) data[category] = [];
+            if (!Array.isArray(data[category])) data[category] = [];
             data[category].push({
-                id: Date.now(),
+                id: uniqueId,
                 title: title,
                 path: fileName,
                 url: rawImageUrl
@@ -286,13 +367,14 @@ uploadSubmitBtn.addEventListener("click", async () => {
             return data;
         });
 
-        setUploadProgress(100, "Completed!");
+        setUploadProgress(100, "Saved & Verified!");
         uploadStatus.style.color = "#4caf50";
-        uploadStatus.textContent = "Design uploaded successfully!";
+        uploadStatus.textContent = "Design uploaded and saved to GitHub!";
         document.getElementById("upload-title").value = "";
         fileInput.value = "";
-        
+
         renderAllCategories();
+        renderAdminImageList();
 
     } catch (error) {
         console.error(error);
@@ -307,40 +389,35 @@ uploadSubmitBtn.addEventListener("click", async () => {
 
 async function updateDataJson(modifierCallback) {
     const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data.json`;
-    
-    const getRes = await fetch(`${apiUrl}?ref=${BRANCH}`, {
-        headers: { Authorization: `token ${githubToken}` }
-    });
-    if (!getRes.ok) {
-        throw new Error("Could not read data.json. Check token permissions.");
-    }
 
-    const fileData = await getRes.json();
-    const decodedText = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ""))));
-    const currentContent = JSON.parse(decodedText);
-    
-    const updatedData = modifierCallback(currentContent);
-    portfolioData = updatedData;
+    const latest = await fetchLatestDataJson(githubToken);
+    const updatedData = normalizePortfolioData(modifierCallback(latest.data));
+    const jsonString = JSON.stringify(updatedData, null, 2);
+    const updatedBase64 = encodeUtf8ToBase64(jsonString);
 
-    const updatedBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(updatedData, null, 2))));
-    
     const putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
             Authorization: `token ${githubToken}`,
+            Accept: "application/vnd.github+json",
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
             message: "Update portfolio data.json",
             content: updatedBase64,
-            sha: fileData.sha,
+            sha: latest.sha,
             branch: BRANCH
         })
     });
 
     if (!putRes.ok) {
-        throw new Error("Failed to update data.json. Check token write permissions.");
+        const errData = await putRes.json().catch(() => ({}));
+        throw new Error(errData.message || "Failed to update data.json.");
     }
+
+    // Re-fetch from GitHub to confirm persistence
+    const confirmed = await fetchLatestDataJson(githubToken);
+    portfolioData = confirmed.data;
 }
 
 // =========================================================
@@ -348,29 +425,37 @@ async function updateDataJson(modifierCallback) {
 // =========================================================
 function renderAdminImageList() {
     const listContainer = document.getElementById("admin-image-list");
-    listContainer.innerHTML = "";
+    if (!listContainer) return;
 
-    Object.keys(portfolioData).forEach(cat => {
+    listContainer.innerHTML = "";
+    const categories = ["bakery", "coffee", "restaurant", "food"];
+    let totalCount = 0;
+
+    categories.forEach(cat => {
         (portfolioData[cat] || []).forEach(item => {
+            totalCount++;
             const thumb = document.createElement("div");
             thumb.className = "admin-thumb";
+            const imgSrc = item.url.includes("?") ? `${item.url}&v=${item.id || Date.now()}` : `${item.url}?v=${item.id || Date.now()}`;
+
             thumb.innerHTML = `
-                <img src="${item.url}" alt="thumb">
+                <img src="${imgSrc}" alt="${item.title || 'thumb'}" loading="lazy">
                 <button class="delete-img-btn" title="Delete"><i class="fa-solid fa-trash"></i></button>
             `;
 
             thumb.querySelector(".delete-img-btn").addEventListener("click", async () => {
                 if (!confirm("Delete this design?")) return;
-                
+
                 thumb.style.opacity = "0.4";
                 try {
                     await updateDataJson((data) => {
-                        data[cat] = data[cat].filter(i => i.id !== item.id);
+                        data[cat] = (data[cat] || []).filter(i => i.id !== item.id);
                         return data;
                     });
                     renderAllCategories();
+                    renderAdminImageList();
                 } catch (e) {
-                    alert("Error deleting image.");
+                    alert(`Error deleting image: ${e.message}`);
                     thumb.style.opacity = "1";
                 }
             });
@@ -378,6 +463,10 @@ function renderAdminImageList() {
             listContainer.appendChild(thumb);
         });
     });
+
+    if (totalCount === 0) {
+        listContainer.innerHTML = `<p style="grid-column: 1 / -1; color: #888; font-size: 0.82rem;">No uploaded images found.</p>`;
+    }
 }
 
 function toBase64(file) {
