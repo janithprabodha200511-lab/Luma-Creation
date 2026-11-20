@@ -1,8 +1,9 @@
 // =========================================================
 // CONFIGURATION - ඔයාගේ GitHub විස්තර මෙතනට දාන්න
 // =========================================================
-const GITHUB_USERNAME = "YOUR_GITHUB_USERNAME"; // උදා: "janithprabodha"
-const REPO_NAME = "luma-creation";              // ඔයා හදපු Repository එකේ නම
+const GITHUB_USERNAME = "janithprabodha200511-lab
+"; // උදා: "janithprabodha"
+const REPO_NAME = "Luma-Creation";              // ඔයා හදපු Repository එකේ නම
 let BRANCH = "main";                            // Auto-detected on verify/load if different
 
 // =========================================================
