@@ -1,8 +1,8 @@
 // =========================================================
 // CONFIGURATION - ඔයාගේ GitHub විස්තර මෙතනට දාන්න
 // =========================================================
-const GITHUB_USERNAME = "janithprabodha200511-lab"; // උදා: "janithprabodha"
-const REPO_NAME = "Luma-Creation";              // ඔයා හදපු Repository එකේ නම
+const GITHUB_USERNAME = "YOUR_GITHUB_USERNAME"; // උදා: "janithprabodha"
+const REPO_NAME = "luma-creation";              // ඔයා හදපු Repository එකේ නම
 const BRANCH = "main";                          // සාමාන්‍යයෙන් "main"
 
 // =========================================================
@@ -26,8 +26,14 @@ const dashboardView = document.getElementById("admin-dashboard-view");
 const tokenInput = document.getElementById("github-token-input");
 const loginSubmitBtn = document.getElementById("login-submit-btn");
 const loginError = document.getElementById("login-error");
+const verifyChecklist = document.getElementById("verify-checklist");
+
 const uploadSubmitBtn = document.getElementById("upload-submit-btn");
 const uploadStatus = document.getElementById("upload-status");
+const progressWrap = document.getElementById("upload-progress-wrap");
+const progressBar = document.getElementById("upload-progress-bar");
+const progressPercent = document.getElementById("upload-percent");
+const uploadStatusText = document.getElementById("upload-status-text");
 const logoutBtn = document.getElementById("logout-btn");
 
 // Lightbox Elements
@@ -40,10 +46,8 @@ const closeLightbox = document.querySelector(".close-lightbox");
 // =========================================================
 async function loadPortfolio() {
     try {
-        // Cache bypass කරන්න timestamp එකක් එකතු කරනවා
         const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/data.json?t=${Date.now()}`;
         const response = await fetch(url);
-        
         if (response.ok) {
             portfolioData = await response.json();
         }
@@ -76,7 +80,6 @@ function renderAllCategories() {
                     <span>${item.title || 'View Design'}</span>
                 </div>
             `;
-            // Customer click කළාම ලොකුවට පේන්න
             card.addEventListener("click", () => {
                 lightboxModal.style.display = "flex";
                 lightboxImg.src = item.url;
@@ -90,17 +93,19 @@ function renderAllCategories() {
     }
 }
 
-// Close Lightbox
 closeLightbox.onclick = () => lightboxModal.style.display = "none";
 lightboxModal.onclick = (e) => {
     if (e.target === lightboxModal) lightboxModal.style.display = "none";
 };
 
 // =========================================================
-// 2. ADMIN LOCK & LOGIN LOGIC
+// 2. ADMIN LOCK & TOKEN/REPO VERIFICATION
 // =========================================================
 lockBtn.addEventListener("click", () => {
     adminModal.style.display = "flex";
+    loginError.textContent = "";
+    verifyChecklist.style.display = "none";
+
     if (githubToken) {
         showDashboard();
     } else {
@@ -113,6 +118,66 @@ closeAdminBtn.addEventListener("click", () => {
     adminModal.style.display = "none";
 });
 
+function renderVerifyChecklist(checks) {
+    verifyChecklist.style.display = "block";
+    verifyChecklist.innerHTML = checks.map(c => `
+        <div class="verify-item ${c.ok ? "verify-ok" : "verify-fail"}">
+            <i class="fa-solid ${c.ok ? "fa-circle-check" : "fa-circle-xmark"}"></i>
+            <span>${c.label}</span>
+        </div>
+    `).join("");
+}
+
+async function verifyTokenAndRepo(token) {
+    const checks = [
+        { label: "Token authentication", ok: false },
+        { label: `Repository access (${GITHUB_USERNAME}/${REPO_NAME})`, ok: false },
+        { label: "Write permission (push/contents)", ok: false },
+        { label: "data.json file found", ok: false }
+    ];
+
+    // 1. Check Token User
+    const userRes = await fetch("https://api.github.com/user", {
+        headers: { Authorization: `token ${token}` }
+    });
+    if (!userRes.ok) {
+        renderVerifyChecklist(checks);
+        throw new Error("Invalid GitHub Token.");
+    }
+    checks[0].ok = true;
+
+    // 2. Check Repository & Push Permission
+    const repoRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}`, {
+        headers: { Authorization: `token ${token}` }
+    });
+    if (!repoRes.ok) {
+        renderVerifyChecklist(checks);
+        throw new Error("Repository not found or token has no access to it.");
+    }
+    const repoInfo = await repoRes.json();
+    checks[1].ok = true;
+
+    const canPush = Boolean(repoInfo.permissions && repoInfo.permissions.push);
+    checks[2].ok = canPush;
+    if (!canPush) {
+        renderVerifyChecklist(checks);
+        throw new Error("Token lacks write permission. Enable 'repo' (Classic) or 'Contents: Read & write' (Fine-grained).");
+    }
+
+    // 3. Check data.json existence
+    const dataRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data.json?ref=${BRANCH}`, {
+        headers: { Authorization: `token ${token}` }
+    });
+    checks[3].ok = dataRes.ok;
+    renderVerifyChecklist(checks);
+
+    if (!dataRes.ok) {
+        throw new Error("data.json was not found in the repository root.");
+    }
+
+    return true;
+}
+
 loginSubmitBtn.addEventListener("click", async () => {
     const token = tokenInput.value.trim();
     if (!token) {
@@ -120,27 +185,22 @@ loginSubmitBtn.addEventListener("click", async () => {
         return;
     }
 
-    loginSubmitBtn.textContent = "Verifying...";
+    loginSubmitBtn.disabled = true;
+    loginSubmitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Verifying...`;
     loginError.textContent = "";
+    verifyChecklist.style.display = "none";
 
-    // GitHub API එකෙන් Token එක ඇත්තද කියලා check කරනවා
     try {
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}`, {
-            headers: { Authorization: `token ${token}` }
-        });
-
-        if (res.ok) {
-            githubToken = token;
-            localStorage.setItem("luma_gh_token", token);
-            tokenInput.value = "";
-            showDashboard();
-        } else {
-            loginError.textContent = "Invalid Token or Repository not found!";
-        }
+        await verifyTokenAndRepo(token);
+        githubToken = token;
+        localStorage.setItem("luma_gh_token", token);
+        tokenInput.value = "";
+        showDashboard();
     } catch (err) {
-        loginError.textContent = "Network error. Please try again.";
+        loginError.textContent = err.message || "Verification failed.";
     } finally {
-        loginSubmitBtn.textContent = "Unlock Admin Panel";
+        loginSubmitBtn.disabled = false;
+        loginSubmitBtn.innerHTML = `<i class="fa-solid fa-check-double"></i> Verify & Unlock Admin Panel`;
     }
 });
 
@@ -157,12 +217,21 @@ logoutBtn.addEventListener("click", () => {
 });
 
 // =========================================================
-// 3. UPLOAD IMAGE DIRECTLY TO GITHUB
+// 3. UPLOAD IMAGE WITH LIVE PROGRESS INDICATOR
 // =========================================================
+function setUploadProgress(percent, text) {
+    progressWrap.style.display = "block";
+    progressBar.style.width = `${percent}%`;
+    progressPercent.textContent = `${percent}%`;
+    uploadStatusText.textContent = text;
+}
+
 uploadSubmitBtn.addEventListener("click", async () => {
     const category = document.getElementById("upload-category").value;
     const title = document.getElementById("upload-title").value.trim();
     const fileInput = document.getElementById("upload-file");
+
+    uploadStatus.textContent = "";
 
     if (!fileInput.files.length) {
         uploadStatus.style.color = "#ff5252";
@@ -173,19 +242,17 @@ uploadSubmitBtn.addEventListener("click", async () => {
     const file = fileInput.files[0];
     uploadSubmitBtn.disabled = true;
     uploadSubmitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Uploading...`;
-    uploadStatus.style.color = "#F4B41A";
-    uploadStatus.textContent = "Uploading image to GitHub...";
+    setUploadProgress(15, "Reading image file...");
 
     try {
-        // 1. Convert Image to Base64
+        // Step 1: Convert Image to Base64
         const base64Content = await toBase64(file);
         const cleanBase64 = base64Content.split(",")[1];
-        
-        // Unique file name එකක් හදනවා
-        const ext = file.name.split(".").pop();
+        const ext = (file.name.split(".").pop() || "png").toLowerCase();
         const fileName = `images/${category}_${Date.now()}.${ext}`;
 
-        // 2. Upload Image File to GitHub 'images/' folder
+        // Step 2: Upload Image File to GitHub
+        setUploadProgress(45, "Uploading image to GitHub...");
         const imgUploadRes = await fetch(`https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${fileName}`, {
             method: "PUT",
             headers: {
@@ -199,11 +266,15 @@ uploadSubmitBtn.addEventListener("click", async () => {
             })
         });
 
-        if (!imgUploadRes.ok) throw new Error("Image upload failed");
+        if (!imgUploadRes.ok) {
+            const errBody = await imgUploadRes.json().catch(() => ({}));
+            throw new Error(errBody.message || "Image upload failed. Check token write permissions.");
+        }
 
         const rawImageUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/${BRANCH}/${fileName}`;
 
-        // 3. Update data.json in GitHub
+        // Step 3: Update data.json in GitHub
+        setUploadProgress(80, "Updating data.json database...");
         await updateDataJson((data) => {
             if (!data[category]) data[category] = [];
             data[category].push({
@@ -215,6 +286,7 @@ uploadSubmitBtn.addEventListener("click", async () => {
             return data;
         });
 
+        setUploadProgress(100, "Completed!");
         uploadStatus.style.color = "#4caf50";
         uploadStatus.textContent = "Design uploaded successfully!";
         document.getElementById("upload-title").value = "";
@@ -224,33 +296,35 @@ uploadSubmitBtn.addEventListener("click", async () => {
 
     } catch (error) {
         console.error(error);
+        progressWrap.style.display = "none";
         uploadStatus.style.color = "#ff5252";
-        uploadStatus.textContent = "Error uploading! Check your token permissions.";
+        uploadStatus.textContent = `Error: ${error.message}`;
     } finally {
         uploadSubmitBtn.disabled = false;
         uploadSubmitBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Upload to GitHub`;
     }
 });
 
-// Helper: Update data.json on GitHub
 async function updateDataJson(modifierCallback) {
     const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/data.json`;
     
-    // Get current file SHA
-    const getRes = await fetch(apiUrl, {
+    const getRes = await fetch(`${apiUrl}?ref=${BRANCH}`, {
         headers: { Authorization: `token ${githubToken}` }
     });
+    if (!getRes.ok) {
+        throw new Error("Could not read data.json. Check token permissions.");
+    }
+
     const fileData = await getRes.json();
-    const currentContent = JSON.parse(atob(fileData.content));
+    const decodedText = decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ""))));
+    const currentContent = JSON.parse(decodedText);
     
-    // Modify data
     const updatedData = modifierCallback(currentContent);
     portfolioData = updatedData;
 
-    // Save back to GitHub
     const updatedBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(updatedData, null, 2))));
     
-    await fetch(apiUrl, {
+    const putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
             Authorization: `token ${githubToken}`,
@@ -263,6 +337,10 @@ async function updateDataJson(modifierCallback) {
             branch: BRANCH
         })
     });
+
+    if (!putRes.ok) {
+        throw new Error("Failed to update data.json. Check token write permissions.");
+    }
 }
 
 // =========================================================
@@ -302,7 +380,6 @@ function renderAdminImageList() {
     });
 }
 
-// Convert File to Base64 Helper
 function toBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
