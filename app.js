@@ -2,7 +2,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================================
     // CONFIGURATION - ඔයාගේ GitHub විස්තර මෙතනට දාන්න
     // =========================================================
-    const GITHUB_USERNAME = "YOUR_GITHUB_USERNAME";
+    const GITHUB_USERNAME = "janithprabodha200511-lab
+";
     const REPO_NAME = "luma-creation";
     let BRANCH = "main";
 
