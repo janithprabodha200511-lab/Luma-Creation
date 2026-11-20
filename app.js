@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================================
     const GITHUB_USERNAME = "janithprabodha200511-lab
 ";
-    const REPO_NAME = "luma-creation";
+    const REPO_NAME = "Luma-Creation";
     let BRANCH = "main";
 
     // =========================================================
